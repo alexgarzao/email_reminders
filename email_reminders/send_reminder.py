@@ -4,6 +4,7 @@
 # send_reminder.py
 
 from send_mail import SendMail
+import logging
 
 
 class SendReminder:
@@ -14,19 +15,23 @@ class SendReminder:
         self.db_cursor = db_cursor
         self.mandrill_config = mandrill_config
 
+        self.logger = logging.getLogger(__name__)
+
     def Send(self, reminder_config):
         '''Filter the data and send the reminder.
         '''
         query = 'SELECT %s FROM %s WHERE %s' % (reminder_config.fields, reminder_config.tables, reminder_config.filter)
 
-        print 'QUERY=', query
+        self.logger.info('QUERY=%s' % query)
 
-        self.db_cursor.execute(query)
+        total_records = self.db_cursor.execute(query)
+
+        self.logger.info('Records in cursor set: %d' % total_records)
 
         send_mail = SendMail(self.mandrill_config)
 
-        totalSent = 0
-        totalError = 0
+        total_sent = 0
+        total_error = 0
 
         fields = self.db_cursor.description
 
@@ -36,21 +41,20 @@ class SendReminder:
             email = row['email']
             name = row['name']
 
-            sent, reject_reason = send_mail.send(email, name, content)
+            sent, reject_reason = send_mail.send_using_template(email, name, content)
             if sent == False:
-                print('ERROR: Email {}. Reason: {}'.format(email, reject_reason))
-                totalError += 1
+                self.logger.error('Email {}. Reason: {}'.format(email, reject_reason))
+                total_error += 1
                 continue
 
             # Update record
             if reminder_config.update != '':
                 self.db_cursor.execute(reminder_config.update, [row[reminder_config.update_field]])
 
-            totalSent += 1
+            total_sent += 1
 
-            print('OK: Email {}'.format(email))
+            self.logger.info('OK: Email {}'.format(email))
 
+        self.logger.info('Sent with success: {} Fail: {}'.format(total_sent, total_error))
 
-        print('Sent with success: {} Fail: {}'.format(totalSent, totalError))
-
-        return
+        return total_sent, total_error, query

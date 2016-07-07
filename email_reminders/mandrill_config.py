@@ -3,6 +3,7 @@
 # Author: Alex S. Garzão <alexgarzao@gmail.com>
 # mandrill_config.py
 
+
 class MandrillConfig:
     '''Class responsible in keep the mandrill config.
     '''

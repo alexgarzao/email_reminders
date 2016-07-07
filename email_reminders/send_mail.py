@@ -4,6 +4,7 @@
 # send_mail.py
 
 import mandrill
+import logging
 
 
 class SendMail:
@@ -14,15 +15,17 @@ class SendMail:
 
     	self.mandrill_config = mandrill_config
 
+        self.logger = logging.getLogger(__name__)
+
         try:
             self.mandrill_client = mandrill.Mandrill(self.mandrill_config.api_key)
         except mandrill.Error, e:
-            print 'A mandrill error occurred: %s - %s' % (e.__class__, e)
+            self.logger.error('A mandrill error occurred: %s - %s' % (e.__class__, e))
             raise
 
 
-    def send(self, email, name, content):
-        '''Send the email.
+    def send_using_template(self, email, name, content):
+        '''Send the email using the defined template.
         '''
         message = {
             'global_merge_vars': content,
@@ -49,5 +52,32 @@ class SendMail:
 
             return result[0]['status'] == 'sent', result[0]['reject_reason']
         except mandrill.Error, e:
-            print 'A mandrill error occurred: %s - %s' % (e.__class__, e)
+            self.logger.info('A mandrill error occurred: %s - %s' % (e.__class__, e))
+            return False
+
+    def send_without_template(self, email, name, subject, content):
+        '''Send the email using the content.
+        '''
+        message = {
+#            'attachments': [{'content': 'ZXhhbXBsZSBmaWxl',
+#                      'name': 'myfile.txt',
+#                      'type': 'text/plain'}],
+            'from_email': email,
+            'subject': subject,
+            'text': content,
+            'headers': self.mandrill_config.headers,
+            'important': False,
+            'metadata': self.mandrill_config.metadata,
+            'to': [{'email': email, 'name': name, 'type': 'to'}],
+            'track_clicks': True,
+            'track_opens': True,
+            'tracking_domain': True,
+        }
+
+        try:
+            result = self.mandrill_client.messages.send(message=message, async=False, ip_pool='Main Pool')
+
+            return result[0]['status'] == 'sent', result[0]['reject_reason']
+        except mandrill.Error, e:
+            self.logger.info('A mandrill error occurred: %s - %s' % (e.__class__, e))
             return False

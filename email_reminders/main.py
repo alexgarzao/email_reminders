@@ -7,28 +7,43 @@ import argparse
 import MySQLdb
 import MySQLdb.cursors
 import ConfigParser
+import logging
 
 from reminder_config import ReminderConfig
 from mandrill_config import MandrillConfig
 from send_reminder import SendReminder
+from email_summary import EmailSummary
+from send_mail import SendMail
 
 
 class Main:
     '''Main class.
     '''
 
+    def __init__(self):
+        self.summary = EmailSummary()
+
     def run(self):
         '''Execute the program.
         '''
-        print 'Starting email reminder...'
+
+        self.__log_config()
+
+        self.logger.info('Starting email reminder...')
 
         self.__parser_args()
         self.__load_config_file()
         self.__print_config()
         self.__db_connect()
         self.__send_reminder()
+        self.__send_summary()
 
-        print 'Reminder finishing...'
+        self.logger.info('Reminder finishing...')
+
+    def __log_config(self):
+        logging.basicConfig(level=logging.INFO)
+
+        self.logger = logging.getLogger(__name__)
 
     def __parser_args(self):
         '''Define the configuration list.
@@ -46,8 +61,10 @@ class Main:
 
         self.args = parser.parse_args()
 
-        print 'Command line configuration'
-        print '\tReminder config file: %s' % self.args.config_filename
+        self.logger.info('Command line configuration')
+        self.logger.info('\tReminder config file: %s' % self.args.config_filename)
+
+        self.summary.command_line_parameters = '--reminder-config-file=' + self.args.config_filename
 
     def __load_config_file(self):
         '''Load the config file specified in --reminder-config-file parameter.
@@ -58,31 +75,31 @@ class Main:
     def __print_config(self):
         '''Print configuration.
         '''
-        print '\nDB config'
-        print '\thost: %s' % self.config.get('db', 'host')
-        print '\tname: %s' % self.config.get('db', 'name')
-        print '\tuser: %s' % self.config.get('db', 'user')
-        print '\tpassword: %s' % self.config.get('db', 'password')
-        print '\tport: %s' % self.config.getint('db', 'port')
+        self.logger.info('\nDB config')
+        self.logger.info('\thost: %s' % self.config.get('db', 'host'))
+        self.logger.info('\tname: %s' % self.config.get('db', 'name'))
+        self.logger.info('\tuser: %s' % self.config.get('db', 'user'))
+        self.logger.info('\tpassword: %s' % self.config.get('db', 'password'))
+        self.logger.info('\tport: %s' % self.config.getint('db', 'port'))
 
-        print '\nMANDRILL config'
-        print '\tapi_key: %s' % self.config.get('mandrill', 'api_key')
-        print '\ttemplate_name: %s' % self.config.get('mandrill', 'template_name')
-        print '\tgoogle_analytics_campaign: %s' % self.config.get('mandrill', 'google_analytics_campaign')
-        print '\tgoogle_analytics_domains: %s' % self.config.get('mandrill', 'google_analytics_domains')
-        print '\treply_to: %s' % self.config.get('mandrill', 'reply_to')
-        print '\twebsite: %s' % self.config.get('mandrill', 'website')
+        self.logger.info('\nMANDRILL config')
+        self.logger.info('\tapi_key: %s' % self.config.get('mandrill', 'api_key'))
+        self.logger.info('\ttemplate_name: %s' % self.config.get('mandrill', 'template_name'))
+        self.logger.info('\tgoogle_analytics_campaign: %s' % self.config.get('mandrill', 'google_analytics_campaign'))
+        self.logger.info('\tgoogle_analytics_domains: %s' % self.config.get('mandrill', 'google_analytics_domains'))
+        self.logger.info('\treply_to: %s' % self.config.get('mandrill', 'reply_to'))
+        self.logger.info('\twebsite: %s' % self.config.get('mandrill', 'website'))
 
-        print '\nREMINDER config'
-        print '\taction_name: %s' % self.config.get('reminder', 'action_name')
-        print '\ttables: %s' % self.config.get('reminder', 'tables')
-        print '\tfields: %s' % self.config.get('reminder', 'fields')
-        print '\tfilter: %s' % self.config.get('reminder', 'filter')
-        print '\tsend_resume_to: %s' % self.config.get('reminder', 'send_resume_to')
-        print '\tupdate: %s' % self.config.get('reminder', 'update')
-        print '\tupdate_field: %s' % self.config.get('reminder', 'update_field')
+        self.logger.info('\nREMINDER config')
+        self.logger.info('\taction_name: %s' % self.config.get('reminder', 'action_name'))
+        self.logger.info('\ttables: %s' % self.config.get('reminder', 'tables'))
+        self.logger.info('\tfields: %s' % self.config.get('reminder', 'fields'))
+        self.logger.info('\tfilter: %s' % self.config.get('reminder', 'filter'))
+        self.logger.info('\tsend_resume_to: %s' % self.config.get('reminder', 'send_resume_to'))
+        self.logger.info('\tupdate: %s' % self.config.get('reminder', 'update'))
+        self.logger.info('\tupdate_field: %s' % self.config.get('reminder', 'update_field'))
 
-        print '\n'
+        self.logger.info('\n')
 
     def __db_connect(self):
         '''Connect with the database.
@@ -121,10 +138,38 @@ class Main:
         db_cursor = self.db_cnx.cursor(MySQLdb.cursors.DictCursor)
 
         send_reminder = SendReminder(db_cursor, mandrill_config)
-        send_reminder.Send(reminder_config)
+        success, error, query = send_reminder.Send(reminder_config)
 
         if reminder_config.update != '':
             self.db_cnx.commit()
+
+        self.summary.sent_with_success = success
+        self.summary.sent_with_error = error
+        self.summary.query = query
+
+        return
+
+    def __send_summary(self):
+        '''Send the reminder.
+        '''
+        mandrill_config = MandrillConfig(
+            api_key = self.config.get('mandrill', 'api_key'),
+            template_name = self.config.get('mandrill', 'template_name'),
+            google_analytics_campaign = self.config.get('mandrill', 'google_analytics_campaign'),
+            google_analytics_domains =  [self.config.get('mandrill', 'google_analytics_domains')],
+            headers = {'Reply-To': self.config.get('mandrill', 'reply_to')},
+            metadata = {'website': self.config.get('mandrill', 'website')},
+        )
+
+        self.logger.info('Summary:\n%s\n' % self.summary.get())
+
+        send_mail = SendMail(mandrill_config)
+        sent, reject_reason = send_mail.send_without_template(self.config.get('reminder', 'send_resume_to'), 'Reminder', 'SUMMARY: ' + self.config.get('reminder', 'action_name'), self.summary.get())
+
+        if sent == True:
+            self.logger.info('Summary sent with success')
+        else:
+            self.logger.error('Summary rejected: reason=%s' % reject_reason)
 
         return
 
