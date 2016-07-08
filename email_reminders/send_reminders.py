@@ -24,7 +24,7 @@ class SendReminders:
     def Send(self, reminder_config):
         '''Filter the data and send the reminder.
         '''
-        query = 'SELECT %s FROM %s WHERE %s' % (reminder_config.fields, reminder_config.tables, reminder_config.filter)
+        query = reminder_config.get_query()
 
         self.logger.info('QUERY=%s' % query)
 

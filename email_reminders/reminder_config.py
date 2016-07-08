@@ -39,3 +39,6 @@ class ReminderConfig:
         self.logger.info('\tupdate: %s' % self.update)
 
         return
+
+    def get_query(self):
+        return 'SELECT %s FROM %s WHERE %s' % (self.fields, self.tables, self.filter)
