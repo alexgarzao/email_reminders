@@ -28,8 +28,6 @@ class SendMail:
         '''Send the email using the defined template.
         '''
 
-        # attachments = [{'content': 'ZXhhbXBsZSBmaWxl', 'name': 'myfile.txt', 'type': 'text/plain'}]
-
         message = {
             'attachments': attachments,
             'global_merge_vars': content,
@@ -54,8 +52,6 @@ class SendMail:
                 async=False,
                 ip_pool='Main Pool')
 
-            self.logger.info('Mandrill result: %s' % result)
-
             sent_status = result[0]['status']
             sent_reject_reason = ''
 
@@ -72,9 +68,6 @@ class SendMail:
         '''Send the email using the content.
         '''
         message = {
-#            'attachments': [{'content': 'ZXhhbXBsZSBmaWxl',
-#                      'name': 'myfile.txt',
-#                      'type': 'text/plain'}],
             'from_email': email,
             'subject': subject,
             'text': content,
@@ -90,7 +83,13 @@ class SendMail:
         try:
             result = self.mandrill_client.messages.send(message=message, async=False, ip_pool='Main Pool')
 
-            return result[0]['status'] == 'sent', result[0]['reject_reason']
+            sent_status = result[0]['status']
+            sent_reject_reason = ''
+
+            if 'reject_reason' in result[0]:
+                sent_reject_reason = result[0]['reject_reason']
+
+            return (sent_status == 'sent' or sent_status == 'queued'), sent_reject_reason
         except mandrill.Error, e:
             self.logger.info('A mandrill error occurred: %s - %s' % (e.__class__, e))
             return False
