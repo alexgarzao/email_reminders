@@ -41,7 +41,7 @@ class SendReminder:
             email = row['email']
             name = row['name']
 
-            sent, reject_reason = send_mail.send_using_template(email, name, content)
+            sent, reject_reason = send_mail.send_using_template(email, name, reminder_config.reminder_template_name, content)
             if sent == False:
                 self.logger.error('Email {}. Reason: {}'.format(email, reject_reason))
                 total_error += 1

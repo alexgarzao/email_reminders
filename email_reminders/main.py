@@ -84,7 +84,6 @@ class Main:
 
         self.logger.info('\nMANDRILL config')
         self.logger.info('\tapi_key: %s' % self.config.get('mandrill', 'api_key'))
-        self.logger.info('\ttemplate_name: %s' % self.config.get('mandrill', 'template_name'))
         self.logger.info('\tgoogle_analytics_campaign: %s' % self.config.get('mandrill', 'google_analytics_campaign'))
         self.logger.info('\tgoogle_analytics_domains: %s' % self.config.get('mandrill', 'google_analytics_domains'))
         self.logger.info('\treply_to: %s' % self.config.get('mandrill', 'reply_to'))
@@ -92,6 +91,8 @@ class Main:
 
         self.logger.info('\nREMINDER config')
         self.logger.info('\taction_name: %s' % self.config.get('reminder', 'action_name'))
+        self.logger.info('\treminder_template_name: %s' % self.config.get('reminder', 'reminder_template_name'))
+        self.logger.info('\tsummary_template_name: %s' % self.config.get('reminder', 'summary_template_name'))
         self.logger.info('\ttables: %s' % self.config.get('reminder', 'tables'))
         self.logger.info('\tfields: %s' % self.config.get('reminder', 'fields'))
         self.logger.info('\tfilter: %s' % self.config.get('reminder', 'filter'))
@@ -118,7 +119,6 @@ class Main:
         '''
         mandrill_config = MandrillConfig(
             api_key = self.config.get('mandrill', 'api_key'),
-            template_name = self.config.get('mandrill', 'template_name'),
             google_analytics_campaign = self.config.get('mandrill', 'google_analytics_campaign'),
             google_analytics_domains =  [self.config.get('mandrill', 'google_analytics_domains')],
             headers = {'Reply-To': self.config.get('mandrill', 'reply_to')},
@@ -127,6 +127,8 @@ class Main:
 
         reminder_config = ReminderConfig(
             action_name = self.config.get('reminder', 'action_name'),
+            reminder_template_name = self.config.get('reminder', 'reminder_template_name'),
+            summary_template_name = self.config.get('reminder', 'summary_template_name'),
             tables = self.config.get('reminder', 'tables'),
             fields = self.config.get('reminder', 'fields'),
             filter = self.config.get('reminder', 'filter'),
@@ -154,17 +156,17 @@ class Main:
         '''
         mandrill_config = MandrillConfig(
             api_key = self.config.get('mandrill', 'api_key'),
-            template_name = self.config.get('mandrill', 'template_name'),
             google_analytics_campaign = self.config.get('mandrill', 'google_analytics_campaign'),
             google_analytics_domains =  [self.config.get('mandrill', 'google_analytics_domains')],
             headers = {'Reply-To': self.config.get('mandrill', 'reply_to')},
             metadata = {'website': self.config.get('mandrill', 'website')},
         )
 
+        self.summary.mandrill_config = mandrill_config
+
         self.logger.info('Summary:\n%s\n' % self.summary.get())
 
-        send_mail = SendMail(mandrill_config)
-        sent, reject_reason = send_mail.send_without_template(self.config.get('reminder', 'send_resume_to'), 'Reminder', 'SUMMARY: ' + self.config.get('reminder', 'action_name'), self.summary.get())
+        sent, reject_reason = self.summary.send(self.config.get('reminder', 'send_resume_to'), self.config.get('reminder', 'summary_template_name'))
 
         if sent == True:
             self.logger.info('Summary sent with success')

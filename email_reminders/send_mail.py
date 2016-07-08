@@ -24,7 +24,7 @@ class SendMail:
             raise
 
 
-    def send_using_template(self, email, name, content):
+    def send_using_template(self, email, name, template_name, content):
         '''Send the email using the defined template.
         '''
         message = {
@@ -44,7 +44,7 @@ class SendMail:
 
         try:
             result = self.mandrill_client.messages.send_template(
-                template_name=self.mandrill_config.template_name,
+                template_name=template_name,
                 template_content=None,
                 message=message,
                 async=False,
