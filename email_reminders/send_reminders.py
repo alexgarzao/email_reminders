@@ -45,23 +45,9 @@ class SendReminders:
             email = row['email']
             name = row['name']
 
-            attachments = None
+            row_content = {x[0]: row[x[0]] for x in fields}
 
-            if reminder_config.attachment_url != '':
-                attachment_url_strings = {x[0]: row[x[0]] for x in fields}
-                attachment_url = Template(reminder_config.attachment_url).safe_substitute(attachment_url_strings)
-                self.logger.info('URL=%s' % attachment_url)
-            	attachment_content = requests.get(attachment_url)
-                self.logger.info('content size=%d' % len(attachment_content.content))
-            	encoded_content = base64.b64encode(attachment_content.content)
-
-            	attachments = [
-            	    {
-            	        'content': encoded_content,
-            	        'name': 'boleto_atar_band.pdf',
-            	        'type': 'application/pdf'
-            	    }
-            	]
+            attachments = self.__build_attachments_parameter(reminder_config.attachment_url, row_content)
 
             sent, reject_reason = send_mail.send_using_template(email, name, reminder_config.reminder_template_name, content, attachments)
             if sent == False:
@@ -84,3 +70,19 @@ class SendReminders:
         self.logger.info('Sent with success: {} Fail: {}'.format(total_sent, total_error))
 
         return total_sent, total_error, query
+
+
+    def __build_attachments_parameter(self, attachment_url, row_content):
+
+        if attachment_url == '':
+            return None
+
+        adjusted_attachment_url = Template(attachment_url).safe_substitute(row_content)
+
+        self.logger.info('URL=%s' % adjusted_attachment_url)
+
+        attachment_content = requests.get(adjusted_attachment_url)
+
+        encoded_content = base64.b64encode(attachment_content.content)
+
+        return [{'content': encoded_content, 'name': 'boleto_atar.pdf', 'type': 'application/pdf'}]
