@@ -55,13 +55,7 @@ class SendReminders:
                 total_error += 1
                 continue
 
-            # Update record
-            if reminder_config.update != '':
-                update_strings = {x[0]: row[x[0]] for x in fields}
-                update_sql = Template(reminder_config.update).safe_substitute(update_strings)
-                self.logger.info('UPDATE SQL=%s' % update_sql)
-
-                self.db_cursor.execute(update_sql)
+            self.__update_record(reminder_config.update, row_content)
 
             total_sent += 1
 
@@ -86,3 +80,17 @@ class SendReminders:
         encoded_content = base64.b64encode(attachment_content.content)
 
         return [{'content': encoded_content, 'name': 'boleto_atar.pdf', 'type': 'application/pdf'}]
+
+
+    def __update_record(self, update_clausule, row_content):
+
+        if update_clausule == '':
+            return
+
+        update_sql = Template(update_clausule).safe_substitute(row_content)
+
+        self.logger.info('UPDATE SQL=%s' % update_sql)
+
+        self.db_cursor.execute(update_sql)
+
+        return
