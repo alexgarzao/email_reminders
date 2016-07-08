@@ -3,8 +3,12 @@
 # Author: Alex S. Garzão <alexgarzao@gmail.com>
 # send_reminder.py
 
+import requests
+
 from send_mail import SendMail
 import logging
+from string import Template
+import base64
 
 
 class SendReminder:
@@ -41,7 +45,25 @@ class SendReminder:
             email = row['email']
             name = row['name']
 
-            sent, reject_reason = send_mail.send_using_template(email, name, reminder_config.reminder_template_name, content)
+            attachments = None
+
+            if reminder_config.attachment_url != '':
+                attachment_url_strings = {x[0]: row[x[0]] for x in fields}
+                attachment_url = Template(reminder_config.attachment_url).safe_substitute(attachment_url_strings)
+                self.logger.info('URL=%s' % attachment_url)
+            	attachment_content = requests.get(attachment_url)
+                self.logger.info('content size=%d' % len(attachment_content.content))
+            	encoded_content = base64.b64encode(attachment_content.content)
+
+            	attachments = [
+            	    {
+            	        'content': encoded_content,
+            	        'name': 'boleto_atar_band.pdf',
+            	        'type': 'application/pdf'
+            	    }
+            	]
+
+            sent, reject_reason = send_mail.send_using_template(email, name, reminder_config.reminder_template_name, content, attachments)
             if sent == False:
                 self.logger.error('Email {}. Reason: {}'.format(email, reject_reason))
                 total_error += 1

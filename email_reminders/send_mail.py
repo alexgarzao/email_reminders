@@ -24,10 +24,14 @@ class SendMail:
             raise
 
 
-    def send_using_template(self, email, name, template_name, content):
+    def send_using_template(self, email, name, template_name, content, attachments = None):
         '''Send the email using the defined template.
         '''
+
+        # attachments = [{'content': 'ZXhhbXBsZSBmaWxl', 'name': 'myfile.txt', 'type': 'text/plain'}]
+
         message = {
+            'attachments': attachments,
             'global_merge_vars': content,
             'google_analytics_campaign': self.mandrill_config.google_analytics_campaign,
             'google_analytics_domains': self.mandrill_config.google_analytics_domains,
@@ -50,7 +54,16 @@ class SendMail:
                 async=False,
                 ip_pool='Main Pool')
 
-            return result[0]['status'] == 'sent', result[0]['reject_reason']
+            self.logger.info('Mandrill result: %s' % result)
+
+            sent_status = result[0]['status']
+            sent_reject_reason = ''
+
+            if 'reject_reason' in result[0]:
+                sent_reject_reason = result[0]['reject_reason']
+
+            return (sent_status == 'sent' or sent_status == 'queued'), sent_reject_reason
+
         except mandrill.Error, e:
             self.logger.info('A mandrill error occurred: %s - %s' % (e.__class__, e))
             return False

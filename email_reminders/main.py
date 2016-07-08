@@ -96,6 +96,7 @@ class Main:
         self.logger.info('\ttables: %s' % self.config.get('reminder', 'tables'))
         self.logger.info('\tfields: %s' % self.config.get('reminder', 'fields'))
         self.logger.info('\tfilter: %s' % self.config.get('reminder', 'filter'))
+        self.logger.info('\tattachment_url: %s' % self.config.get('reminder', 'attachment_url'))
         self.logger.info('\tsend_resume_to: %s' % self.config.get('reminder', 'send_resume_to'))
         self.logger.info('\tupdate: %s' % self.config.get('reminder', 'update'))
         self.logger.info('\tupdate_field: %s' % self.config.get('reminder', 'update_field'))
@@ -132,6 +133,7 @@ class Main:
             tables = self.config.get('reminder', 'tables'),
             fields = self.config.get('reminder', 'fields'),
             filter = self.config.get('reminder', 'filter'),
+            attachment_url = self.config.get('reminder', 'attachment_url'),
             send_resume_to = self.config.get('reminder', 'send_resume_to'),
             update = self.config.get('reminder', 'update'),
             update_field = self.config.get('reminder', 'update_field')
