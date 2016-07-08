@@ -22,7 +22,6 @@ class ReminderConfig:
         self.attachment_url = config.get('reminder', 'attachment_url')
         self.send_resume_to = config.get('reminder', 'send_resume_to')
         self.update = config.get('reminder', 'update')
-        self.update_field = config.get('reminder', 'update_field')
 
         return
 
@@ -38,6 +37,5 @@ class ReminderConfig:
         self.logger.info('\tattachment_url: %s' % self.attachment_url)
         self.logger.info('\tsend_resume_to: %s' % self.send_resume_to)
         self.logger.info('\tupdate: %s' % self.update)
-        self.logger.info('\tupdate_field: %s' % self.update_field)
 
         return

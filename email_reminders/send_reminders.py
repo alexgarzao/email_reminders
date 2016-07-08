@@ -71,7 +71,11 @@ class SendReminders:
 
             # Update record
             if reminder_config.update != '':
-                self.db_cursor.execute(reminder_config.update, [row[reminder_config.update_field]])
+                update_strings = {x[0]: row[x[0]] for x in fields}
+                update_sql = Template(reminder_config.update).safe_substitute(update_strings)
+                self.logger.info('UPDATE SQL=%s' % update_sql)
+
+                self.db_cursor.execute(update_sql)
 
             total_sent += 1
 
