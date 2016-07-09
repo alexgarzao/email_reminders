@@ -99,7 +99,8 @@ class Main:
             host=self.config.get('db', 'host'),
             passwd=self.config.get('db', 'password'),
             port=self.config.getint('db', 'port'),
-            unix_socket='tcp'
+            unix_socket='tcp',
+            charset='utf8'
         )
 
     def __send_reminders(self):
